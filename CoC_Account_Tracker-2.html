@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101522">
+<title>CoC Account Tracker</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#0b1020;--card:#121a2b;--card2:#182238;--text:#eef3ff;--muted:#9aa8c2;--accent:#6ea8ff;--danger:#ff667a;--ok:#4cd694;--border:#26344f;--input:#0e1627}
+body.light{--bg:#f4f7fb;--card:#fff;--card2:#eef3fa;--text:#172033;--muted:#657087;--accent:#356ff0;--danger:#d93650;--ok:#169c63;--border:#d8e0ed;--input:#f8faff}
+html{background:#080c16;color-scheme:dark;min-height:100%}
+html:has(body.light){background:#f4f7fb;color-scheme:light}
+body{margin:0;background:transparent;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;min-height:100dvh}
+/* fixed background layer: stays put while scrolling, no white gaps on overscroll */
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(circle at top,#17243e 0,#0b1020 45%,#080c16 100%)}
+body.light::before{background:linear-gradient(135deg,#eef4ff,#f8fafc)}
+.container{max-width:1150px;margin:auto;padding:20px}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px}
+.logo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#4f83ff,#8c5cff);font-size:24px}
+h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:3px}
+button,.fileBtn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:9px 12px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;font-family:inherit}
+button:hover,.fileBtn:hover{border-color:var(--accent)}
+.primary{background:var(--accent);color:#fff;border-color:transparent}
+.danger{color:#fff;background:var(--danger);border-color:transparent}
+.ghost{background:transparent}
+input,textarea,select{width:100%;border:1px solid var(--border);background:var(--input);color:var(--text);border-radius:10px;padding:10px;font:inherit;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px #6ea8ff22}
+textarea{min-height:110px;resize:vertical}
+.backup{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
+.backup h2{margin:0 0 4px;font-size:15px}
+.backup p{margin:0 0 10px;color:var(--muted);font-size:12.5px;line-height:1.5}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.warn{border-color:var(--danger)}
+.warnmsg{color:var(--danger);font-size:12.5px;font-weight:600;margin-bottom:8px;display:none}
+.warn .warnmsg{display:block}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px}.stat b{font-size:19px;display:block}.stat span{font-size:12px;color:var(--muted)}
+.bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.bar input{flex:1;min-width:200px}.bar select{width:auto}
+.grid{display:grid;grid-template-columns:380px 1fr;gap:15px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:16px}
+.panel h2{font-size:16px;margin:0 0 6px}
+label{font-size:12px;color:var(--muted);display:block;margin:10px 0 5px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.full{grid-column:1/-1}
+.form-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr))}
+.account{background:var(--card2);border:1px solid var(--border);border-radius:13px;padding:13px;min-width:0}
+.account.fav{border-color:#e7b94a}
+.account-top{display:flex;justify-content:space-between;gap:10px;align-items:start}
+.account h3{margin:0;font-size:16px;word-break:break-word}
+.tag{font-size:12px;color:var(--accent);font-weight:700;cursor:pointer;word-break:break-all}
+.badge{font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.meta{font-size:13px;color:var(--muted);margin-top:9px;line-height:1.7;word-break:break-word}
+.meta b{color:var(--text);font-weight:600}
+.meta span.k{display:inline-block;min-width:58px;font-size:12px}
+.note{white-space:pre-wrap;margin-top:9px;font-size:13px;word-break:break-word;border-top:1px dashed var(--border);padding-top:8px}
+.card-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.card-actions button{font-size:12px;padding:6px 9px}
+.empty{text-align:center;padding:35px 10px;color:var(--muted);grid-column:1/-1}
+.footer{text-align:center;color:var(--muted);font-size:12px;margin:18px 0;line-height:1.6}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:#111827;color:#fff;padding:10px 15px;border-radius:10px;transition:.25s;z-index:20;box-shadow:0 8px 25px #0006;display:flex;gap:12px;align-items:center;max-width:92vw}
+#toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+#toast button{padding:4px 10px;font-size:12px;background:var(--accent);color:#fff;border:0}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.row{grid-template-columns:1fr}.container{padding:14px}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <div class="brand">
+    <div class="logo">⚔️</div>
+    <div><h1>CoC Account Tracker</h1><div class="sub">Keep your Clash of Clans accounts, emails & details organized.</div></div>
+  </div>
+  <button onclick="toggleTheme()">☀️ / 🌙</button>
+</header>
+
+<div class="backup" id="backupBox">
+  <h2>💾 Backup & Restore</h2>
+  <div class="warnmsg" id="warnMsg">⚠️ You have unsaved changes since your last backup. Download a backup now!</div>
+  <p>Your data lives only in this browser. Clearing site data or switching device loses it, so download a backup regularly. To move to another device: <b>Download Backup</b> → open this page on the new device → <b>Restore Backup</b>.</p>
+  <div class="btnrow">
+    <button class="primary" onclick="exportJSON()">⬇️ Download Backup (.json)</button>
+    <label class="fileBtn">⬆️ Restore Backup <input id="importFile" type="file" accept=".json,.txt,.doc,.html,.htm,text/plain,application/json" hidden></label>
+    <button onclick="exportTXT()">📄 Export TXT</button>
+    <button onclick="exportDOC()">📝 Export DOC</button>
+    <button class="ghost" onclick="undoImport()" id="undoImportBtn" style="display:none">↩️ Undo last restore</button>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><b id="count">0</b><span>Total accounts</span></div>
+  <div class="stat"><b id="emails">0</b><span>Unique emails</span></div>
+  <div class="stat"><b id="favs">0</b><span>Favorites</span></div>
+  <div class="stat"><b id="updated">—</b><span>Last backup</span></div>
+</div>
+
+<div class="bar">
+  <input id="search" placeholder="🔍 Search name, email, player, tag, clan, notes..." oninput="render()">
+  <select id="filterType" onchange="render()"><option value="">All types</option><option>Main</option><option>Farm</option><option>War</option><option>Rushed</option><option>Spare</option><option>Other</option></select>
+  <select id="sort" onchange="render()">
+    <option value="new">Newest first</option>
+    <option value="name">Name A–Z</option>
+    <option value="th">Town Hall (high→low)</option>
+    <option value="email">Email A–Z</option>
+  </select>
+  <button onclick="clearSearch()">Clear</button>
+</div>
+
+<div class="grid">
+<section class="panel">
+<h2 id="formTitle">➕ Add CoC Account</h2>
+<div class="row">
+<div><label>Account / Nickname</label><input id="name" placeholder="e.g. Main Account"></div>
+<div><label>Type</label><select id="type"><option>Main</option><option>Farm</option><option>War</option><option>Rushed</option><option>Spare</option><option>Other</option></select></div>
+<div><label>Player Name</label><input id="player" placeholder="In-game name"></div>
+<div><label>Player Tag</label><input id="tag" placeholder="#ABC123XYZ" autocapitalize="characters"></div>
+<div><label>Town Hall</label><input id="th" placeholder="e.g. 17" inputmode="numeric"></div>
+<div><label>Clan</label><input id="clan" placeholder="Optional"></div>
+<div class="full"><label>Connected Email</label><input id="email" type="email" placeholder="example@gmail.com"></div>
+<div class="full"><label>Supercell ID / Login</label><input id="login" placeholder="Optional"></div>
+<div class="full"><label>Other details</label><textarea id="notes" placeholder="Recovery info, device, purchase notes, etc."></textarea></div>
+</div>
+<div class="form-actions">
+<button class="primary" onclick="saveAccount()">💾 Save Account</button>
+<button onclick="resetForm()">Reset</button>
+</div>
+</section>
+
+<section class="panel">
+<h2>📋 Saved Accounts <span id="shown" style="color:var(--muted);font-weight:400;font-size:13px"></span></h2>
+<div id="cards" class="cards" style="margin-top:12px"></div>
+</section>
+</div>
+
+<div class="footer">
+🔒 Data is saved only in this browser — nothing is uploaded anywhere.<br>
+Tip: anyone with access to this device/browser can see these details, so avoid storing passwords.
+</div>
+</div>
+<div id="toast"></div>
+
+<script>
+const KEY="cocAccountTracker_v1";
+const FIELDS=["name","type","player","tag","th","clan","email","login","notes"];
+const memStore={};
+const store={
+  get(k){try{return localStorage.getItem(k)}catch(e){return memStore[k]??null}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){memStore[k]=v;storageFailed=true}},
+};
+let storageFailed=false;
+const $=id=>document.getElementById(id);
+
+function load(){try{const p=JSON.parse(store.get(KEY)||"[]");return Array.isArray(p)?p.map(normalize):[]}catch(e){return[]}}
+let accounts=load();
+let editing=null;
+let lastDeleted=null;
+
+function uid(){return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():"id"+Date.now().toString(36)+Math.random().toString(36).slice(2,9)}
+function normalize(a){
+  a=a||{};
+  const s=v=>String(v==null?"":v).trim();
+  return {id:s(a.id)||uid(),name:s(a.name)||"Unnamed Account",type:s(a.type)||"Main",player:s(a.player),tag:s(a.tag),th:s(a.th),clan:s(a.clan),email:s(a.email),login:s(a.login),notes:s(a.notes),fav:!!a.fav,modified:a.modified||new Date().toISOString()};
+}
+function key(a){return [(a.tag||"").toLowerCase().replace(/\s/g,""),(a.email||"").toLowerCase(),(a.name||"").toLowerCase()].join("|")}
+
+function persist(){
+  store.set(KEY,JSON.stringify(accounts));
+  store.set(KEY+"_dirty","1");
+  updateStats();
+}
+function toast(msg,actionLabel,action){
+  const t=$("toast");t.innerHTML="";
+  const sp=document.createElement("span");sp.textContent=msg;t.appendChild(sp);
+  if(actionLabel){const b=document.createElement("button");b.textContent=actionLabel;b.onclick=()=>{action();t.classList.remove("show")};t.appendChild(b)}
+  t.classList.add("show");clearTimeout(window._t);window._t=setTimeout(()=>t.classList.remove("show"),actionLabel?6000:2500);
+}
+function updateStats(){
+  $("count").textContent=accounts.length;
+  $("emails").textContent=new Set(accounts.map(a=>a.email.toLowerCase()).filter(Boolean)).size;
+  $("favs").textContent=accounts.filter(a=>a.fav).length;
+  const s=store.get(KEY+"_backup");
+  $("updated").textContent=s?new Date(s).toLocaleDateString([], {day:"numeric",month:"short"})+" "+new Date(s).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}):"Never";
+  const dirty=store.get(KEY+"_dirty")==="1"&&accounts.length>0;
+  $("backupBox").classList.toggle("warn",dirty);
+  $("undoImportBtn").style.display=store.get(KEY+"_prev")?"":"none";
+}
+function markBackedUp(){store.set(KEY+"_backup",new Date().toISOString());store.set(KEY+"_dirty","0");updateStats()}
+
+function saveAccount(){
+  const email=$("email").value.trim();
+  if(email&&!/^\S+@\S+\.\S+$/.test(email)){toast("Email doesn't look valid");$("email").focus();return}
+  const old=editing?accounts.find(x=>x.id===editing):null;
+  const a=normalize({id:editing||uid(),fav:old?old.fav:false,modified:new Date().toISOString(),...Object.fromEntries(FIELDS.map(f=>[f,$(f).value]))});
+  if(a.tag&&!a.tag.startsWith("#"))a.tag="#"+a.tag;
+  a.tag=a.tag.toUpperCase();
+  const others=accounts.filter(x=>x.id!==a.id);
+  // Player tags are unique: block duplicates completely
+  const tagDup=a.tag&&others.find(x=>x.tag.toUpperCase()===a.tag);
+  if(tagDup){alert("❌ Player tag "+a.tag+" is already saved in \""+tagDup.name+"\".\nEach account must have a unique player tag.");$("tag").focus();return}
+  // One email should belong to only one account: warn, let the user decide
+  const emailDup=a.email&&others.find(x=>x.email.toLowerCase()===a.email.toLowerCase());
+  if(emailDup&&!confirm("⚠️ The email "+a.email+" is already used in \""+emailDup.name+"\".\nOne email should be linked to only one account.\n\nSave anyway?"))return;
+  if(editing){accounts=accounts.map(x=>x.id===editing?a:x);toast("Account updated ✓")}
+  else{accounts.unshift(a);toast("Account saved ✓")}
+  persist();resetForm();render();
+}
+function resetForm(){
+  editing=null;$("formTitle").textContent="➕ Add CoC Account";
+  FIELDS.forEach(f=>$(f).value="");$("type").value="Main";
+}
+function editAccount(id){
+  const a=accounts.find(x=>x.id===id);if(!a)return;
+  editing=id;$("formTitle").textContent="✏️ Edit CoC Account";
+  FIELDS.forEach(f=>$(f).value=a[f]||"");
+  $("formTitle").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function deleteAccount(id){
+  const a=accounts.find(x=>x.id===id);if(!a)return;
+  if(!confirm('Delete "'+a.name+'"?'))return;
+  lastDeleted=a;accounts=accounts.filter(x=>x.id!==id);
+  if(editing===id)resetForm();
+  persist();render();
+  toast("Account deleted","Undo",()=>{if(lastDeleted){accounts.unshift(lastDeleted);lastDeleted=null;persist();render()}});
+}
+function toggleFav(id){const a=accounts.find(x=>x.id===id);if(a){a.fav=!a.fav;persist();render()}}
+function copyText(text,msg){
+  const done=()=>toast(msg||"Copied ✓");
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(done,()=>fallbackCopy(text,done))}
+  else fallbackCopy(text,done);
+}
+function fallbackCopy(text,done){
+  const t=document.createElement("textarea");t.value=text;t.style.position="fixed";t.style.opacity="0";
+  document.body.appendChild(t);t.select();
+  try{document.execCommand("copy");done()}catch(e){toast("Copy failed")}
+  t.remove();
+}
+function copyAccount(id){const a=accounts.find(x=>x.id===id);if(a)copyText(formatAccount(a),"Account details copied ✓")}
+function copyTag(id){const a=accounts.find(x=>x.id===id);if(a&&a.tag)copyText(a.tag,"Tag copied ✓")}
+
+function formatAccount(a){
+ return `Account: ${a.name}\nType: ${a.type||"-"}\nPlayer Name: ${a.player||"-"}\nPlayer Tag: ${a.tag||"-"}\nTown Hall: ${a.th||"-"}\nClan: ${a.clan||"-"}\nConnected Email: ${a.email||"-"}\nSupercell ID/Login: ${a.login||"-"}\nOther Details: ${a.notes||"-"}`;
+}
+function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function thNum(a){const m=String(a.th).match(/\d+/);return m?+m[0]:0}
+
+function render(){
+  const q=$("search").value.toLowerCase().trim(),ft=$("filterType").value,sort=$("sort").value;
+  let list=accounts.filter(a=>(!ft||a.type===ft)&&(!q||[a.name,a.type,a.player,a.tag,a.th,a.clan,a.email,a.login,a.notes].join(" ").toLowerCase().includes(q)));
+  list.sort((x,y)=>(y.fav-x.fav)||(sort==="name"?x.name.localeCompare(y.name):sort==="th"?thNum(y)-thNum(x):sort==="email"?x.email.localeCompare(y.email):0));
+  $("shown").textContent=accounts.length?`(${list.length}/${accounts.length})`:"";
+  const emailCount={};
+  accounts.forEach(a=>{const e=a.email.toLowerCase();if(e)emailCount[e]=(emailCount[e]||0)+1});
+  $("cards").innerHTML=list.length?list.map(a=>`
+    <article class="account${a.fav?" fav":""}">
+      <div class="account-top">
+        <div><h3>${a.fav?"⭐ ":""}${esc(a.name)}</h3><div class="tag" data-copytag="${esc(a.id)}" title="Tap to copy">${esc(a.tag||"No player tag")}</div></div>
+        <div style="text-align:right"><span class="badge">${esc(a.type)}</span><div style="font-size:13px;margin-top:5px">🏰 ${esc(a.th?(/^\d+$/.test(a.th)?"TH"+a.th:a.th):"—")}</div></div>
+      </div>
+      <div class="meta">
+        <span class="k">👤 Player</span> <b>${esc(a.player||"—")}</b><br>
+        <span class="k">🛡️ Clan</span> <b>${esc(a.clan||"—")}</b><br>
+        <span class="k">📧 Email</span> <b>${esc(a.email||"—")}</b>${a.email&&emailCount[a.email.toLowerCase()]>1?' <span style="color:var(--danger);font-size:12px" title="This email is used in more than one account">⚠️ duplicate email</span>':''}<br>
+        <span class="k">🔑 Login</span> <b>${esc(a.login||"—")}</b>
+      </div>
+      ${a.notes?`<div class="note">${esc(a.notes)}</div>`:""}
+      <div class="card-actions">
+        <button data-act="copy" data-id="${esc(a.id)}">📋 Copy</button>
+        <button data-act="fav" data-id="${esc(a.id)}">${a.fav?"★ Unstar":"☆ Star"}</button>
+        <button data-act="edit" data-id="${esc(a.id)}">✏️ Edit</button>
+        <button class="danger" data-act="del" data-id="${esc(a.id)}">🗑️</button>
+      </div>
+    </article>`).join(""):`<div class="empty">${q||ft?"No matching accounts found.":"No accounts yet. Add your first CoC account."}</div>`;
+  updateStats();
+}
+// event delegation (avoids inline-handler issues with ids)
+$("cards").addEventListener("click",e=>{
+  const t=e.target.closest("[data-act],[data-copytag]");if(!t)return;
+  if(t.dataset.copytag){copyTag(t.dataset.copytag);return}
+  const id=t.dataset.id,act=t.dataset.act;
+  if(act==="copy")copyAccount(id);else if(act==="fav")toggleFav(id);else if(act==="edit")editAccount(id);else if(act==="del")deleteAccount(id);
+});
+function clearSearch(){$("search").value="";$("filterType").value="";render()}
+function toggleTheme(){document.body.classList.toggle("light");const l=document.body.classList.contains("light");store.set("cocTheme",l?"light":"dark");const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=l?"#f4f7fb":"#101522"}
+if(store.get("cocTheme")==="light"){document.body.classList.add("light");const m=document.querySelector('meta[name="theme-color"]');if(m)m.content="#f4f7fb"}
+
+/* ---------- Export ---------- */
+function stamp(){const d=new Date(),p=n=>String(n).padStart(2,"0");return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"+p(d.getHours())+p(d.getMinutes())}
+function download(name,data,type){
+  const blob=new Blob([data],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+const BEGIN="-----BEGIN COC BACKUP DATA-----",END="-----END COC BACKUP DATA-----";
+function b64(obj){return btoa(unescape(encodeURIComponent(JSON.stringify(obj))))}
+function unb64(s){return JSON.parse(decodeURIComponent(escape(atob(s))))}
+function exportJSON(){
+  if(!accounts.length)return toast("Nothing to export");
+  download(`coc-backup-${stamp()}.json`,JSON.stringify({app:"coc-account-tracker",version:2,exported:new Date().toISOString(),accounts},null,2),"application/json");
+  markBackedUp();toast("Backup downloaded ✓");
+}
+function exportTXT(){
+  if(!accounts.length)return toast("Nothing to export");
+  const text="CLASH OF CLANS ACCOUNT TRACKER\n"+"=".repeat(34)+"\n\n"+
+    accounts.map((a,i)=>`ACCOUNT ${i+1}\n${formatAccount(a)}\n${"-".repeat(34)}`).join("\n\n")+
+    `\n\n${BEGIN}\n${b64(accounts)}\n${END}\n`;
+  download(`coc-accounts-${stamp()}.txt`,text,"text/plain;charset=utf-8");markBackedUp();toast("TXT exported ✓");
+}
+function exportDOC(){
+  if(!accounts.length)return toast("Nothing to export");
+  const rows=accounts.map((a,i)=>`<p><b>ACCOUNT ${i+1}</b><br>${formatAccount(a).split("\n").map(l=>esc(l)).join("<br>")}</p><hr>`).join("");
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>CoC Account Tracker</title></head><body><h1>Clash of Clans Account Tracker</h1>${rows}<p style="font-size:1px;color:#ffffff">${BEGIN} ${b64(accounts)} ${END}</p></body></html>`;
+  download(`coc-accounts-${stamp()}.doc`,html,"application/msword;charset=utf-8");markBackedUp();toast("DOC exported ✓");
+}
+
+/* ---------- Import ---------- */
+function htmlToText(raw){
+  const t=raw.replace(/<style[\s\S]*?<\/style>/gi,"").replace(/<br\s*\/?>/gi,"\n").replace(/<\/(p|h\d|div|li|tr)>/gi,"\n").replace(/<hr\s*\/?>/gi,"\n----------\n").replace(/<[^>]*>/g,"");
+  const ta=document.createElement("textarea");ta.innerHTML=t;return ta.value.replace(/\u00a0/g," ").replace(/\r/g,"");
+}
+function parseText(raw){
+  // 1) embedded backup data (most reliable)
+  const m=raw.match(/-----BEGIN COC BACKUP DATA-----\s*([\s\S]*?)\s*-----END COC BACKUP DATA-----/);
+  if(m){try{const d=unb64(m[1].replace(/\s+/g,""));if(Array.isArray(d))return d}catch(e){}}
+  // 2) labeled blocks
+  const text=/<\s*(html|body|p|br)\b/i.test(raw)?htmlToText(raw):raw.replace(/\r/g,"");
+  const labels={"account":"name","type":"type","player name":"player","player tag":"tag","town hall":"th","clan":"clan","connected email":"email","supercell id/login":"login","other details":"notes"};
+  const out=[];let cur=null,inNotes=false;
+  for(const line of text.split("\n")){
+    const lm=line.match(/^\s*(Account|Type|Player Name|Player Tag|Town Hall|Clan|Connected Email|Supercell ID\/Login|Other Details)\s*:\s*(.*)$/i);
+    if(lm){
+      const f=labels[lm[1].toLowerCase()];let v=lm[2].trim();if(v==="-")v="";
+      if(f==="name"){cur={};out.push(cur)}
+      if(!cur)continue;
+      cur[f]=v;inNotes=f==="notes";
+    }else if(cur&&inNotes){
+      if(/^\s*([-=]{5,}|ACCOUNT\s+\d+)\s*$/i.test(line)||/^\s*$/.test(line)&&false){inNotes=false}
+      else if(line.trim())cur.notes=(cur.notes?cur.notes+"\n":"")+line.trim();
+    }
+  }
+  return out;
+}
+$("importFile").addEventListener("change",e=>{
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onerror=()=>toast("Could not read file");
+  r.onload=()=>{
+    try{
+      const raw=String(r.result||"").replace(/^\uFEFF/,"");
+      let arr=null;
+      const trimmed=raw.trim();
+      if(trimmed[0]==="{"||trimmed[0]==="["){
+        const p=JSON.parse(trimmed);
+        arr=Array.isArray(p)?p:(Array.isArray(p.accounts)?p.accounts:null);
+        if(!arr)throw Error("Not an account backup");
+      }else arr=parseText(raw);
+      const imported=arr.map(normalize).filter(a=>a.name!=="Unnamed Account"||a.email||a.player||a.tag);
+      if(!imported.length)throw Error("No accounts found");
+      // snapshot for undo
+      store.set(KEY+"_prev",JSON.stringify(accounts));
+      const ids=new Set(accounts.map(a=>a.id)),keys=new Set(accounts.map(key));
+      const tags=new Set(accounts.map(a=>a.tag.toUpperCase()).filter(Boolean));
+      const mails=new Set(accounts.map(a=>a.email.toLowerCase()).filter(Boolean));
+      let added=0,skipped=0,mailDups=0;
+      for(const a of imported){
+        const t=a.tag.toUpperCase(),em=a.email.toLowerCase();
+        if(ids.has(a.id)||keys.has(key(a))||(t&&tags.has(t))){skipped++;continue}
+        if(em&&mails.has(em))mailDups++;
+        accounts.push(a);ids.add(a.id);keys.add(key(a));if(t)tags.add(t);if(em)mails.add(em);added++;
+      }
+      persist();render();
+      toast(`${added} imported${skipped?`, ${skipped} duplicate${skipped===1?"":"s"} skipped`:""}${mailDups?`, ${mailDups} with a repeated email ⚠️`:""}`);
+    }catch(err){console.error(err);toast("Could not read this backup: "+(err.message||"invalid file"))}
+  };
+  r.readAsText(file);e.target.value="";
+});
+function undoImport(){
+  const p=store.get(KEY+"_prev");if(!p)return;
+  if(!confirm("Undo the last restore and go back to the previous list?"))return;
+  try{accounts=JSON.parse(p).map(normalize);store.set(KEY+"_prev","");persist();render();toast("Restore undone ✓")}catch(e){toast("Could not undo")}
+}
+
+// ask browser to keep data from being auto-cleared
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+window.addEventListener("beforeunload",e=>{if(storageFailed&&accounts.length){e.preventDefault();e.returnValue=""}});
+render();
+if(storageFailed)toast("⚠️ Browser storage is blocked — download a backup before closing!");
+</script>
+</body>
+</html>
